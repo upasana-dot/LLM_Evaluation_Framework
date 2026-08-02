@@ -1,14 +1,14 @@
 import json
+import re
 from services.gemini_service import generate_response
 from utils.json_parser import parse_json
 
-
-def evaluate_hallucination(user_prompt, llm_response):
+def evaluate_factual_accuracy(user_prompt, llm_response):
 
     evaluation_prompt = f"""
 You are an expert AI evaluator.
 
-Your task is to detect hallucinations in an AI response.
+Evaluate the factual accuracy of the following AI response.
 
 User Prompt:
 {user_prompt}
@@ -16,56 +16,39 @@ User Prompt:
 LLM Response:
 {llm_response}
 
-Evaluate whether the response contains:
-
-- Fabricated facts
-- Unsupported claims
-- Invented statistics
-- Fake references
-- Non-existent events
-
 Return ONLY valid JSON.
 
 Format:
 
 {{
-    "hallucination_score":0.0,
-    "risk_level":"LOW",
+    "accuracy_score":0.0,
+    "confidence":"HIGH",
     "reason":"..."
 }}
 
 Rules:
 
-hallucination_score:
+- accuracy_score must be between 0 and 1
+- 1 = Completely factually correct
+- 0 = Completely incorrect
 
-0 = No hallucination
-
-1 = Completely hallucinated
-
-Risk Levels:
-
-LOW
-
-MEDIUM
-
+Confidence values:
 HIGH
+MEDIUM
+LOW
 
 Return ONLY JSON.
 """
 
     result = generate_response(evaluation_prompt)
+    result = result.replace("```json", "").replace("```", "").strip()
 
     try:
         return parse_json(result)
 
     except Exception:
-
         return {
-
-            "hallucination_score": None,
-
-            "risk_level": "UNKNOWN",
-
+            "accuracy_score": None,
+            "confidence": "UNKNOWN",
             "reason": result
-
         }
